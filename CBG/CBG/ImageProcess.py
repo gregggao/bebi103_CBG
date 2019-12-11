@@ -51,6 +51,8 @@ def image_process(im):
     
     # create data frames containing the area
     df = pd.DataFrame(data=stack_data, columns=["area (µm²)"])
+    time = list(range(len(df)))
+    df["time (min)"] = time
     return df
 
 def im_thresholded(im):

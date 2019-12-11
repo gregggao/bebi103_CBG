@@ -1,3 +1,6 @@
+import multiprocessing
+import warnings
+
 import numpy as np
 import pandas as pd
 import scipy.optimize
@@ -100,3 +103,118 @@ def Expon_plot_growth(df):
         plots = plots*plot
     
     return plots
+
+
+def Expon_all_params (df):
+    # number of total growth events
+    num_growth = df['growth event'].values[-1] +1
+    params_list = []
+    for i in range(num_growth):
+        # for each growth event, the mle is calculated
+        df_one_growth = df.loc[df['growth event'] == i]
+        # set the threshold for complete recognition of growth event
+        if len(df_one_growth) > 75:
+            t = df_one_growth['time (min)'].values
+            growth = df_one_growth['area (µm²)'].values
+            if i != 0:
+                t = [x - t[0] + 1  for x in t]
+                t = np.asarray(t)
+            params = mle_Expon_fun(t, growth)
+            # collect mles in a list
+            params_list.append(params)
+        else:
+            # give the fragments no parameters to drop them
+            params_list.append([0,0,0])
+    
+    params_list = pd.DataFrame(data=np.vstack(params_list), columns=['a0', 'k', 'sigma'])
+    
+    return params_list
+
+def Expon_fun(a0, k, t):
+    # Exponential mathematical model
+    a = a0*np.exp(k*t)
+    return a
+
+def Expon_log_likelihood(params, t, growth):
+    # there are 3 params, 4 phyiscals and sigma from generative function
+    a0, k, sigma = params
+    # restrain params
+    if a0 < 0 or k < 0 or k > 1 or sigma < 0:
+         return -np.inf
+    # mu is the expected value
+    mu = Expon_fun(a0, k, t)
+    return np.sum(st.norm.logpdf(growth, mu, sigma))
+
+def mle_Expon_fun(t, growth):
+    # params optimized by minimizing negated log likelihood 
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+
+        res = scipy.optimize.minimize(
+            fun=lambda params, t, growth: -Expon_log_likelihood(params, t, growth),
+            x0=np.array([1.4, 0.006, 0.05]),
+            args=(t, growth),
+            method='Powell'
+        )
+
+    if res.success:
+        return res.x
+    else:
+        raise RuntimeError('Convergence failed with message', res.message)
+        
+def Linear_all_params (df):
+    # number of total growth events
+    num_growth = df['growth event'].values[-1] +1
+    params_list = []
+    for i in range(num_growth):
+        # for each growth event, the mle is calculated
+        df_one_growth = df.loc[df['growth event'] == i]
+        # set the threshold for complete recognition of growth event
+        if len(df_one_growth) > 75:
+            t = df_one_growth['time (min)'].values
+            growth = df_one_growth['area (µm²)'].values
+            if i != 0:
+                t = [x - t[0] + 1  for x in t]
+                t = np.asarray(t)
+            params = mle_Linear_fun(t, growth)
+            # collect mles in a list
+            params_list.append(params)
+        else:
+            # give the fragments no parameters to drop them
+            params_list.append([0,0,0])
+            
+    params_list = pd.DataFrame(data=np.vstack(params_list), columns=['a0', 'k', 'sigma'])
+
+    return params_list
+
+def Linear_fun(a0, k, t):
+    # Linear mathematical model
+    a = a0 + a0*k*t
+    return a
+
+def Linear_log_likelihood(params, t, growth):
+    # there are 3 params, 4 phyiscals and sigma from generative function
+    a0, k, sigma = params
+    # restrain params
+    if a0 < 0 or k < 0 or k > 1 or sigma < 0:
+         return -np.inf
+    # mu is the expected value
+    mu = Linear_fun(a0, k, t)
+    return np.sum(st.norm.logpdf(growth, mu, sigma))
+
+def mle_Linear_fun(t, growth):
+    # params optimized by minimizing negated log likelihood 
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+
+        res = scipy.optimize.minimize(
+            fun=lambda params, t, growth: -Linear_log_likelihood(params, t, growth),
+            x0=np.array([1.4, 0.008, 0.05]),
+            args=(t, growth),
+            method='Powell'
+        )
+
+    if res.success:
+        return res.x
+    else:
+        raise RuntimeError('Convergence failed with message', res.message)

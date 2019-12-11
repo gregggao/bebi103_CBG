@@ -20,7 +20,6 @@ hv.extension('bokeh')
 
 def growth_event_id(df):
     # growth event identifier
-    df = x
     frames = len(df['area (µm²)'])
     previous_area = 0
     growth_event_id = -1
