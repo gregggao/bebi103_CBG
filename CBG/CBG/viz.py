@@ -46,7 +46,7 @@ def plot_theor_Expon_k(a0, k):
     # set a theoretical x-axis data 0 to 100
     t_theor = np.linspace(0, 100, 1000)
     return hv.Curve(
-        data=(t_theor, Expon_fun(1.3, k, t_theor)),
+        data=(t_theor, Expon_fun(a0, k, t_theor)),
         kdims=['t_theor'],
         vdims=['Expon_fun'],
         label=f'a0, k = {round(a0,4),round(k,4)}',
